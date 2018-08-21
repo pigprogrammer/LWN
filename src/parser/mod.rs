@@ -50,6 +50,8 @@ pub enum Expr {
     StringLiteral(String),
     BooleanLiteral(bool),
 
+    Array(Vec<Expr>),
+
     Assign(String, Box<Expr>),
     Function(Function),
     Class(String,Vec<String>, Vec<Method>,),

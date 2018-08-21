@@ -29,7 +29,7 @@ struct Options {
 fn stmt(input: &str)  {
     let lexer = parser::lexer::Lexer::new(input);
     let parser = parser::grammar::ProgramParser::new();
-    
+    println!("{:?}",parser.parse(lexer).unwrap());
 }
 
 fn main() {
@@ -38,6 +38,7 @@ fn main() {
         Some(path) => run_file(&path,options.debug),
         None => repl(),
     }
+
 }
 
 fn run_expr<'a>(input: &'a str, ctx: &mut VM) -> Result<(), ParseError<'a>> {

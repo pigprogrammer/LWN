@@ -340,8 +340,17 @@ impl Evaluate<Value> for Expr {
                             right.eval(ctx)
                         }
                     }
+
                 }
             }
+            Expr::Array(ref array) => {
+                let mut values = vec![];
+                for i in array.iter() {
+                    values.push(i.eval(ctx)?);
+                }
+                Ok(Value::Array(values))
+            }
+            _ => unimplemented!()
         }
     }
 }

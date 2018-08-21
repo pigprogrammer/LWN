@@ -9,6 +9,7 @@ pub enum Value {
     Int(i64),
     Float(f64),
     Str(String),
+    Array(Vec<Value>),
     Function(Vec<String>, Vec<Stmt>, NamespaceRef),
     NativeFunction(NativeFn),
 }
@@ -36,6 +37,7 @@ impl fmt::Display for Value {
             Value::Int(val) => write!(f, "{}", val),
             Value::Str(val) => write!(f, "{}", val),
             Value::Float(val) => write!(f,"{}",val),
+            Value::Array(val) => write!(f, "{:?}", val),
             Value::Function(_, _, _) => write!(f, "<fn>"),
             Value::NativeFunction(_) => write!(f, "<native fn>"),
         }
@@ -54,6 +56,7 @@ impl PartialEq for Value {
             (Float(a),Int(b)) => *a == *b as f64,
             (Int(a),Float(b)) => *a as f64 == *b,
             (Str(a), Str(b)) => a == b,
+            (Array(a),Array(b)) => a == b,
             _ => false,
         }
     }

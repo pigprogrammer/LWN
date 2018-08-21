@@ -1,4 +1,5 @@
 use std::fmt;
+use super::Expr;
 
 #[derive(Debug, PartialEq)]
 pub enum Token<'input> {
@@ -30,6 +31,7 @@ pub enum Token<'input> {
     String(&'input str),
     Float(f64),
     Int(i64),
+    Array(Vec<Expr>),
 
     Else,
     False,
@@ -78,6 +80,7 @@ impl<'input> fmt::Display for Token<'input> {
             String(s) => write!(f, "\"{}\"", s),
             Int(n) => write!(f, "{}", n),
             Float(n) => write!(f,"{}",n),
+            Array(ref arr) => write!(f,"{:?}",arr),
             Else => write!(f, "else"),
             False => write!(f, "false"),
             Fn => write!(f, "fun"),

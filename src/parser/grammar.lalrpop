@@ -89,6 +89,8 @@ ExprComp: Expr = {
     ExprAddSub,
 };
 
+
+
 ExprAddSub: Expr = {
     <l: ExprAddSub> "+" <r: ExprMulDiv> => Expr::BinaryOp(BinaryOp::Add, Box::new(l), Box::new(r)),
     <l: ExprAddSub> "-" <r: ExprMulDiv> => Expr::BinaryOp(BinaryOp::Subtract, Box::new(l), Box::new(r)),
@@ -109,13 +111,20 @@ ExprUnary: Expr = {
 
 ExprCall: Expr = {
     <f: ExprAtom> <a: Paren<Comma<Expr>>> => Expr::Call(Box::new(f), a),
-    ExprAtom
+    ExprArray
 };
+
+ExprArray: Expr = {
+    <p: Bracket<Comma<Expr>>> => Expr::Array(p),
+    ExprAtom,
+}
+
 
 ExprAtom = {
     Literal,
     Paren<Expr>,
 };
+
 
 // Literals
 
@@ -130,6 +139,8 @@ Literal: Expr = {
 };
 
 // Utilities
+
+
 
 Paren<T> = "(" <T> ")";
 Brace<T> = "{" <T> "}";
