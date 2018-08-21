@@ -69,9 +69,6 @@ fn run_file(path: &PathBuf,_debug: bool) {
 }
 
 fn repl() {
-    println!("| Something 0.1.0");
-    println!("| Copyright © 2018 Joe Clay");
-    println!("| Released under the MIT License\n");
 
     let mut editor = Editor::<()>::new();
     let _ = editor.load_history("history.txt");
