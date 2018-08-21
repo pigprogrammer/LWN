@@ -1,0 +1,10 @@
+var a = fun() {
+    print("Hello world!");
+}
+
+fun hello() {
+    print("Hello world!");
+}
+
+hello();
+a();

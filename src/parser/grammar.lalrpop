@@ -16,9 +16,9 @@ Stmt: Stmt = {
     If,
     Function,
     "return" <Expr> ";" => Stmt::Return(<>),
-    "var" <id: "identifier"> "=" <e: Expr> ";" => Stmt::Declaration(id.to_string(), e),
+    "var" <id: "identifier"> "=" <e: Expr>";" => Stmt::Declaration(id.to_string(), e),
     "while" <Expr> <Block> => Stmt::While(<>),
-    <Expr> ";" => Stmt::ExprStmt(<>),
+    <Expr> ";"=> Stmt::ExprStmt(<>),
 };
 
 
@@ -32,6 +32,17 @@ If: Stmt = {
 
 Function: Stmt = {
     "fun" <id: "identifier"> <p: Paren<Comma<"identifier">>> <b: Block> => {
+        Stmt::Declaration(
+            id.to_string(),
+            Expr::Function(
+                Function {
+                    params: p.iter().map(|s| s.to_string()).collect(),
+                    stmts: b
+                }
+            )
+        )
+    },
+    "var" <id: "identifier"> "=" "fun" <p: Paren<Comma<"identifier">>> <b: Block> => {
         Stmt::Declaration(
             id.to_string(),
             Expr::Function(
