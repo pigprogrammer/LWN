@@ -1,0 +1,192 @@
+use parser::{Expr, Stmt, UnaryOp, BinaryOp};
+use parser::lexer::LexicalError;
+use parser::lexer::Token;
+use parser::{Function,Method};
+grammar<'input>;
+
+pub Program = StmtList;
+
+Block = Brace<StmtList>;
+
+StmtList = Stmt*;
+
+// Statements
+
+Stmt: Stmt = {
+    If,
+    Function,
+    "return" <Expr> ";" => Stmt::Return(<>),
+    "var" <id: "identifier"> "=" <e: Expr> ";" => Stmt::Declaration(id.to_string(), e),
+    "while" <Expr> <Block> => Stmt::While(<>),
+    <Expr> ";" => Stmt::ExprStmt(<>),
+};
+
+
+
+
+
+If: Stmt = {
+    "if" <Expr> <Block> => Stmt::If(<>, vec![]),
+    "if" <Expr> <Block> "else" <Block> => Stmt::If(<>),
+};
+
+Function: Stmt = {
+    "fun" <id: "identifier"> <p: Paren<Comma<"identifier">>> <b: Block> => {
+        Stmt::Declaration(
+            id.to_string(),
+            Expr::Function(
+                Function {
+                    params: p.iter().map(|s| s.to_string()).collect(),
+                    stmts: b
+                }
+            )
+        )
+    }
+};
+
+
+// Expressions
+
+pub Expr = ExprAssign;
+
+ExprAssign: Expr = {
+    <id: "identifier"> "=" <e: ExprAssign> => Expr::Assign(id.to_string(), Box::new(e)),
+    ExprOr,
+};
+
+ExprOr: Expr = {
+    <l: ExprOr> "||" <r: ExprAnd> => Expr::BinaryOp(BinaryOp::Or, Box::new(l), Box::new(r)),
+    ExprAnd,
+};
+
+ExprAnd: Expr = {
+    <l: ExprAnd> "&&" <r: ExprEq> => Expr::BinaryOp(BinaryOp::And, Box::new(l), Box::new(r)),
+    ExprEq,
+};
+
+ExprEq: Expr = {
+    <l: ExprEq> "!=" <r: ExprComp> => Expr::BinaryOp(BinaryOp::NotEquals, Box::new(l), Box::new(r)),
+    <l: ExprEq> "==" <r: ExprComp> => Expr::BinaryOp(BinaryOp::Equals, Box::new(l), Box::new(r)),
+    ExprComp,
+};
+
+ExprComp: Expr = {
+    <l: ExprComp> ">"  <r: ExprAddSub> => Expr::BinaryOp(BinaryOp::GreaterThan, Box::new(l), Box::new(r)),
+    <l: ExprComp> ">=" <r: ExprAddSub> => Expr::BinaryOp(BinaryOp::GreaterEquals, Box::new(l), Box::new(r)),
+    <l: ExprComp> "<"  <r: ExprAddSub> => Expr::BinaryOp(BinaryOp::LessThan, Box::new(l), Box::new(r)),
+    <l: ExprComp> "<=" <r: ExprAddSub> => Expr::BinaryOp(BinaryOp::LessEquals, Box::new(l), Box::new(r)),
+    ExprAddSub,
+};
+
+ExprAddSub: Expr = {
+    <l: ExprAddSub> "+" <r: ExprMulDiv> => Expr::BinaryOp(BinaryOp::Add, Box::new(l), Box::new(r)),
+    <l: ExprAddSub> "-" <r: ExprMulDiv> => Expr::BinaryOp(BinaryOp::Subtract, Box::new(l), Box::new(r)),
+    ExprMulDiv,
+};
+
+ExprMulDiv: Expr = {
+    <l: ExprMulDiv> "*" <r: ExprUnary> => Expr::BinaryOp(BinaryOp::Multiply, Box::new(l), Box::new(r)),
+    <l: ExprMulDiv> "/" <r: ExprUnary> => Expr::BinaryOp(BinaryOp::Divide, Box::new(l), Box::new(r)),
+    ExprUnary,
+};
+
+ExprUnary: Expr = {
+    "!" <ExprCall> => Expr::UnaryOp(UnaryOp::Not, Box::new(<>)),
+    "-" <ExprCall> => Expr::UnaryOp(UnaryOp::UnaryMinus, Box::new(<>)),
+    ExprCall,
+};
+
+ExprCall: Expr = {
+    <f: ExprAtom> <a: Paren<Comma<Expr>>> => Expr::Call(Box::new(f), a),
+    ExprAtom
+};
+
+ExprAtom = {
+    Literal,
+    Paren<Expr>,
+};
+
+// Literals
+
+Literal: Expr = {
+    "nil" => Expr::Nil,
+    "true" => Expr::BooleanLiteral(true),
+    "false" => Expr::BooleanLiteral(false),
+    "float" => Expr::FloatLiteral(<>),
+    "int" => Expr::IntLiteral(<>),
+    "string" => Expr::StringLiteral(<>.to_string()),
+    "identifier" => Expr::Identifier(<>.to_string()),
+};
+
+// Utilities
+
+Paren<T> = "(" <T> ")";
+Brace<T> = "{" <T> "}";
+Bracket<T> = "[" <T> "]";
+
+Comma<T> = Delim<T, ",">;
+
+Delim<T, D>: Vec<T> = {
+    <h: (<T> D)*> <t: T?> => match t {
+        Some(t) => {
+            let mut h = h;
+            h.push(t);
+            h
+        }
+        None => h
+    }     
+};
+
+// Externs
+
+extern {
+    type Location = usize;
+    type Error = LexicalError;
+
+    enum Token<'input> {
+        // Sigils
+        "{" => Token::OpenBrace,
+        "}" => Token::CloseBrace,
+        "[" => Token::OpenBracket,
+        "]" => Token::CloseBracket,
+        "(" => Token::OpenParen,
+        ")" => Token::CloseParen,
+        ";" => Token::Semicolon,
+        "," => Token::Comma,
+        "." => Token::Dot,
+        "+" => Token::Plus,
+        "-" => Token::Minus,
+        "*" => Token::Star,
+        "/" => Token::Slash,
+        "!" => Token::Not,
+        "!=" => Token::NotEqual,
+        "=" => Token::Equal,
+        "==" => Token::EqualEqual,
+        ">" => Token::Greater,
+        ">=" => Token::GreaterEqual,
+        "<" => Token::Less,
+        "<=" => Token::LessEqual,
+        "&&" => Token::AmpAmp,
+        "||" => Token::PipePipe,
+
+        // Literals
+        "identifier" => Token::Identifier(<&'input str>),
+        "string" => Token::String(<&'input str>),
+        "int" => Token::Int(<i64>),
+        "float" => Token::Float(<f64>),
+
+        // Keywords
+        "else" => Token::Else,
+        "false" => Token::False,
+        "fun" => Token::Fn,
+        "for" => Token::For,
+        "if" => Token::If,
+        "nil" => Token::Nil,
+        "class" => Token::Class,
+        "return" => Token::Return,
+        "this" => Token::This,
+        "true" => Token::True,
+        "var" => Token::Let,
+        "while" => Token::While,
+    }
+}

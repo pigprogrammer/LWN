@@ -1,0 +1,98 @@
+#[macro_use]extern crate failure;
+extern crate rustyline;
+#[macro_use]
+extern crate structopt;
+extern crate lalrpop_util;
+extern crate fnv;
+
+pub mod parser;
+pub mod interpreter;
+use parser::parse_program;
+use parser::parse_expr;
+use interpreter::VM;
+use parser::ParseError;
+use rustyline::Editor;
+use std::fs::File;
+use std::io::prelude::*;
+use std::path::PathBuf;
+use structopt::StructOpt;
+use interpreter::Evaluate;
+
+#[derive(StructOpt, Debug)]
+struct Options {
+    #[structopt(name = "FILE", parse(from_os_str))]
+    file: Option<PathBuf>,
+    #[structopt(short = "d", long = "debug")]
+    debug: bool,
+}
+
+fn stmt(input: &str)  {
+    let lexer = parser::lexer::Lexer::new(input);
+    let parser = parser::grammar::ProgramParser::new();
+    
+}
+
+fn main() {
+    let options  = Options::from_args();
+    match options.file {
+        Some(path) => run_file(&path,options.debug),
+        None => repl(),
+    }
+}
+
+fn run_expr<'a>(input: &'a str, ctx: &mut VM) -> Result<(), ParseError<'a>> {
+    match parser::parse_expr(input)?.eval(ctx) {
+        Ok(value) => println!("{}\n", value),
+        Err(e) => eprintln!("Error: {}\n", e),
+    }
+
+    Ok(())
+}
+
+fn run_program(input: &str, ctx: &mut VM) {
+    match parser::parse_program(input) {
+        Ok(ast) => if let Err(e) = ast.eval(ctx) {
+            eprintln!("Error: {}\n", e);
+        },
+        Err(e) => eprintln!("Error: {}\n", e),
+    }
+}
+
+fn run_file(path: &PathBuf,_debug: bool) {
+    // TODO: Better error handling
+    let mut file = File::open(path).expect("not found");
+    let mut buffer = String::new();
+    file.read_to_string(&mut buffer)
+        .expect("couldn't read file");
+
+    run_program(&buffer, &mut VM::new())
+}
+
+fn repl() {
+    println!("| Something 0.1.0");
+    println!("| Copyright © 2018 Joe Clay");
+    println!("| Released under the MIT License\n");
+
+    let mut editor = Editor::<()>::new();
+    let _ = editor.load_history("history.txt");
+
+    let mut ctx = VM::new();
+
+    loop {
+        match editor.readline(">> ") {
+            Ok(line) => {
+                editor.add_history_entry(&line);
+
+                if run_expr(&line, &mut ctx).is_err() {
+                    run_program(&line, &mut ctx);
+                }
+            }
+            Err(err) => {
+                eprintln!("Error: {}\n", err);
+                break;
+            }
+        }
+    }
+
+    editor.save_history("history.txt").unwrap();
+}
